@@ -16,6 +16,7 @@
     <thead>
       <tr>
         <th>Placering</th>
+        <th>Grupp</th>
         <th>Spelare</th>
         <th>Spikar</th>
         <th>Totalpoäng</th>
@@ -38,6 +39,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${index + 1}</td>
+          <td>${row.grupp || ""}</td>
           <td>${row.spelare}</td>
           <td>${row.spikar}</td>
           <td>${row.total}</td>
