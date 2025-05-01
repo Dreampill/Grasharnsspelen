@@ -2,96 +2,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gräsharnsspelen - Skicka poäng</title>
+  <title>Gräsharnsspelen - Resultat</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 1000px; margin: auto; }
-    input[type="number"] { width: 3rem; }
-    table, th, td { border: 1px solid #000; border-collapse: collapse; }
-    th, td { padding: 0.3rem; text-align: center; }
-    button { margin-top: 1rem; }
-    .spelar-rad { margin-bottom: 2rem; border: 2px solid #ccc; padding: 1rem; }
+    body { font-family: sans-serif; padding: 1rem; max-width: 800px; margin: auto; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #000; padding: 0.5rem; text-align: center; }
+    th { background: #f0f0f0; }
   </style>
 </head>
 <body>
-  <h1>Gräsharnsspelen - Poänginmatning</h1>
-  <button onclick="addPlayer()">Lägg till spelare</button>
-  <div id="players"></div>
-  <p id="status"></p>  <script>
-    let playerCount = 0;
-
-    function addPlayer() {
-      playerCount++;
-      const container = document.createElement('div');
-      container.className = 'spelar-rad';
-      container.innerHTML = `
-        <label>Spelarnamn: <input type="text" id="name${playerCount}" required></label>
-        <div id="inputs${playerCount}"></div>
-        <button onclick="submitResult(${playerCount})">Skicka resultat</button>
-        <p id="status${playerCount}"></p>
-      `;
-      document.getElementById('players').appendChild(container);
-
-      const inputDiv = document.getElementById(`inputs${playerCount}`);
-      const table1 = document.createElement('table');
-      const row1 = document.createElement('tr');
-      for (let i = 1; i <= 9; i++) {
-        const td = document.createElement('td');
-        td.innerHTML = `<label>H${i}<br><input type="number" id="hole${playerCount}_${i}" min="1" max="3"></label>`;
-        row1.appendChild(td);
-      }
-      table1.appendChild(row1);
-
-      const table2 = document.createElement('table');
-      const row2 = document.createElement('tr');
-      for (let i = 10; i <= 18; i++) {
-        const td = document.createElement('td');
-        td.innerHTML = `<label>H${i}<br><input type="number" id="hole${playerCount}_${i}" min="1" max="3"></label>`;
-        row2.appendChild(td);
-      }
-      table2.appendChild(row2);
-
-      inputDiv.appendChild(table1);
-      inputDiv.appendChild(document.createElement('br'));
-      inputDiv.appendChild(table2);
-    }
-
-    async function submitResult(id) {
-      const name = document.getElementById(`name${id}`).value.trim();
-      if (!name) return alert("Skriv in spelarens namn");
-
-      const scores = [];
-      for (let i = 1; i <= 18; i++) {
-        const val = parseInt(document.getElementById(`hole${id}_${i}`).value);
-        if (![1, 2, 3].includes(val)) {
-          return alert(`Ogiltigt värde på hål ${i}`);
-        }
-        scores.push(val);
-      }
-
-      const spikar = scores.filter(p => p === 1).length;
-      const total = scores.reduce((a, b) => a + b, 0);
-
-      const payload = {
-        spelare: name,
-        poang: scores.join(","),
-        spikar,
-        total
-      };
-
-      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang", {
-        method: "POST",
+  <h1>Resultat - Gräsharnsspelen</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Placering</th>
+        <th>Grupp</th>
+        <th>Spelare</th>
+        <th>Spikar</th>
+        <th>Totalpoäng</th>
+        <th>Poäng (1–18)</th>
+      </tr>
+    </thead>
+    <tbody id="resultTable"></tbody>
+  </table>  <script>
+    async function fetchResults() {
+      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?select=*&order=spikar.desc,total.asc", {
         headers: {
-          "Content-Type": "application/json",
-          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
-        },
-        body: JSON.stringify(payload)
+          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+        }
       });
-
-      const text = await res.text();
-document.getElementById(`status${id}`).textContent = res.ok
-  ? "Resultat inskickat!"
-  : `Fel: ${text}`;
+      const data = await res.json();
+      const table = document.getElementById("resultTable");
+      table.innerHTML = "";
+      data.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${row.grupp || ""}</td>
+          <td>${row.spelare}</td>
+          <td>${row.spikar}</td>
+          <td>${row.total}</td>
+          <td>${row.poang}</td>
+        `;
+        table.appendChild(tr);
+      });
     }
+
+    fetchResults();
+    setInterval(fetchResults, 10000); // uppdatera var 10:e sekund
   </script></body>
 </html>
