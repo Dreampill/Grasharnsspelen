@@ -38,9 +38,7 @@
     <thead>
       <tr>
         <th>Spelare</th>
-        <script>
-          for (let i = 1; i <= 18; i++) document.write(`<th>${i}</th>`);
-        </script>
+        <script>for (let i = 1; i <= 18; i++) document.write(`<th>${i}</th>`);</script>
         <th>Spikar</th><th>Totalt</th><th>QR</th>
       </tr>
     </thead>
@@ -56,28 +54,18 @@
     </div>
   </div>
 
-  <!-- QRCode.js (lokalt inbäddad) -->
-  <script>
-  /*! qrcode.js v1.0.0 - https://github.com/davidshimjs/qrcodejs */
-  // [Koden är lång – den finns inbäddad i nedladdningsfilen, eller be mig infoga den här om du vill den inline.]
-  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
   <script>
     function addPlayer() {
       const name = document.getElementById('playerName').value.trim();
       if (!name) return;
-
       const tbody = document.querySelector('#scoreTable tbody');
       const row = document.createElement('tr');
       const playerId = `player-${Date.now()}`;
-
       row.setAttribute('data-id', playerId);
       row.innerHTML = `<td>${name}</td>` +
         Array.from({ length: 18 }, () => `<td><input type="number" min="1" max="3" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
-        `<td class="spik">0</td><td class="total">0</td>` +
-        `<td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
-
+        `<td class="spik">0</td><td class="total">0</td><td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
       tbody.appendChild(row);
       document.getElementById('playerName').value = '';
       saveToLocalStorage();
@@ -123,10 +111,9 @@
         const row = document.createElement('tr');
         row.setAttribute('data-id', player.id);
         row.innerHTML = `<td>${player.name}</td>` +
-          player.scores.map(score => 
+          player.scores.map(score =>
             `<td><input type="number" min="1" max="3" value="${score}" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
-          `<td class="spik">0</td><td class="total">0</td>` +
-          `<td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
+          `<td class="spik">0</td><td class="total">0</td><td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
         tbody.appendChild(row);
       });
       document.querySelectorAll('#scoreTable tbody input').forEach(input => updateScores(input));
@@ -146,7 +133,6 @@
       const spik = row.querySelector('.spik').textContent;
       const total = row.querySelector('.total').textContent;
       const data = `Spelare: ${name}\nPoäng: ${scores.join(', ')}\nSpikar: ${spik}\nTotal: ${total}`;
-
       document.getElementById('qrModal').style.display = 'flex';
       document.getElementById('qrcode').innerHTML = '';
       new QRCode(document.getElementById('qrcode'), {
