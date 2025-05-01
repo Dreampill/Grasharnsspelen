@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gräsharnsspelen - Poänghållning</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    table, th, td { border: 1px solid #000; border-collapse: collapse; }
+    th, td { padding: 0.5rem; text-align: center; }
+    input[type="number"] { width: 3rem; }
+    .spik { background: #cfc; }
+    .total { font-weight: bold; }
+    button { margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Gräsharnsspelen Poänghållning</h1>
+  <label>Spelarnamn: <input id="playerName" type="text" /></label>
+  <button onclick="addPlayer()">Lägg till spelare</button>
+  <button onclick="exportResults()">Exportera resultat</button>
+  <button onclick="resetData()">Nollställ allt</button>
+
+  <table id="scoreTable">
+    <thead>
+      <tr>
+        <th>Spelare</th>
+        <!-- 18 hål -->
+        <script>
+          for (let i = 1; i <= 18; i++) document.write(`<th>${i}</th>`);
+        </script>
+        <th>Spikar</th><th>Totalt</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function addPlayer() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) return;
+
+      const tbody = document.querySelector('#scoreTable tbody');
+      const row = document.createElement('tr');
+      const playerId = `player-${Date.now()}`;
+
+      row.setAttribute('data-id', playerId);
+      row.innerHTML = `<td>${name}</td>` +
+        Array.from({ length: 18 }, () => `<td><input type="number" min="1" max="3" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
+        `<td class="spik">0</td><td class="total">0</td>`;
+
+      tbody.appendChild(row);
+      document.getElementById('playerName').value = '';
+      saveToLocalStorage();
+    }
+
+    function updateScores(input) {
+      const row = input.closest('tr');
+      const inputs = row.querySelectorAll('input');
+      let spik = 0, total = 0;
+      inputs.forEach(inp => {
+        const val = parseInt(inp.value);
+        if (!isNaN(val)) {
+          total += val;
+          if (val === 1) spik++;
+        }
+      });
+      row.querySelector('.spik').textContent = spik;
+      row.querySelector('.total').textContent = total;
+      saveToLocalStorage();
+    }
+
+    function limitInput(input) {
+      const value = parseInt(input.value);
+      if (value > 3) input.value = 3;
+      if (value < 1) input.value = 1;
+    }
+
+    function exportResults() {
+      let csv = 'Spelare;' + [...Array(18).keys()].map(i => 'Hål ' + (i+1)).join(';') + ';Spikar;Totalt\n';
+      document.querySelectorAll('#scoreTable tbody tr').forEach(row => {
+        const name = row.children[0].textContent;
+        const scores = [...row.querySelectorAll('input')].map(inp => inp.value || '');
+        const spik = row.querySelector('.spik').textContent;
+        const total = row.querySelector('.total').textContent;
+        csv += [name, ...scores, spik, total].join(';') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'grassharnsspelen_resultat.csv';
+      a.click();
+    }
+
+    function saveToLocalStorage() {
+      const data = [];
+      document.querySelectorAll('#scoreTable tbody tr').forEach(row => {
+        const id = row.getAttribute('data-id');
+        const name = row.children[0].textContent;
+        const scores = [...row.querySelectorAll('input')].map(inp => inp.value || '');
+        data.push({ id, name, scores });
+      });
+      localStorage.setItem('graspoang', JSON.stringify(data));
+    }
+
+    function loadFromLocalStorage() {
+      const saved = JSON.parse(localStorage.getItem('graspoang') || '[]');
+      const tbody = document.querySelector('#scoreTable tbody');
+      saved.forEach(player => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-id', player.id);
+        row.innerHTML = `<td>${player.name}</td>` +
+          player.scores.map(score => 
+            `<td><input type="number" min="1" max="3" value="${score}" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
+          `<td class="spik">0</td><td class="total">0</td>`;
+        tbody.appendChild(row);
+      });
+      document.querySelectorAll('#scoreTable tbody input').forEach(input => updateScores(input));
+    }
+
+    function resetData() {
+      if (confirm('Är du säker på att du vill radera all data?')) {
+        localStorage.removeItem('graspoang');
+        document.querySelector('#scoreTable tbody').innerHTML = '';
+      }
+    }
+
+    window.addEventListener('load', loadFromLocalStorage);
+  </script>
+</body>
+</html>
