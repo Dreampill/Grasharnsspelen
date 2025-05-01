@@ -2,54 +2,154 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gräsharnsspelen - Resultat</title>
+  <title>Gräsharnsspelen - Poänginmatning</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 800px; margin: auto; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { border: 1px solid #000; padding: 0.5rem; text-align: center; }
-    th { background: #f0f0f0; }
+    body { font-family: sans-serif; padding: 1rem; max-width: 1000px; margin: auto; }
+    input[type="number"] { width: 3rem; }
+    table, th, td { border: 1px solid #000; border-collapse: collapse; }
+    th, td { padding: 0.3rem; text-align: center; }
+    button { margin: 0.5rem 0.5rem 0 0; }
+    .spelar-rad { margin-bottom: 2rem; border: 2px solid #ccc; padding: 1rem; position: relative; }
+    .poangsummor { margin-top: 0.5rem; font-weight: bold; }
+    .ta-bort-btn { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; padding: 0.3rem 0.5rem; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>Resultat - Gräsharnsspelen</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Placering</th>
-        <th>Grupp</th>
-        <th>Spelare</th>
-        <th>Spikar</th>
-        <th>Totalpoäng</th>
-        <th>Poäng (1–18)</th>
-      </tr>
-    </thead>
-    <tbody id="resultTable"></tbody>
-  </table>  <script>
-    async function fetchResults() {
-      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?select=*&order=spikar.desc,total.asc", {
-        headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
-        }
-      });
-      const data = await res.json();
-      const table = document.getElementById("resultTable");
-      table.innerHTML = "";
-      data.forEach((row, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${row.grupp || ""}</td>
-          <td>${row.spelare}</td>
-          <td>${row.spikar}</td>
-          <td>${row.total}</td>
-          <td>${row.poang}</td>
-        `;
-        table.appendChild(tr);
-      });
-    }
+  <h1>Gräsharnsspelen - Poänginmatning</h1>
+  <label>Gruppnamn: <input id="groupName" type="text"></label><br><br>
+  <label>Spelarnamn: <input id="newPlayerName" type="text"></label>
+  <button onclick="addPlayer()">Lägg till spelare</button>
+  <div id="players"></div>
+  <script>
+    let playerCount = 0;
+    let localData = JSON.parse(localStorage.getItem("graspoang") || "[]");function addPlayer(name = "", scores = []) {
+  const inputName = document.getElementById("newPlayerName");
+  const group = document.getElementById("groupName").value.trim();
+  if (!group) return alert("Skriv in ett gruppnamn först");
+  if (!name) {
+    name = inputName.value.trim();
+    if (!name) return alert("Skriv in ett namn först");
+  }
+  inputName.value = "";
 
-    fetchResults();
-    setInterval(fetchResults, 10000); // uppdatera var 10:e sekund
-  </script></body>
+  playerCount++;
+  const container = document.createElement('div');
+  container.className = 'spelar-rad';
+  container.setAttribute('data-id', playerCount);
+
+  container.innerHTML = `
+    <button class="ta-bort-btn" onclick="removePlayer(${playerCount})">X</button>
+    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" required></label>
+    <div id="inputs${playerCount}"></div>
+    <div class="poangsummor">Spikar: <span id="spik${playerCount}">0</span> | Totalt: <span id="total${playerCount}">0</span></div>
+    <button onclick="submitResult(${playerCount})">Skicka resultat</button>
+    <p id="status${playerCount}"></p>
+  `;
+  document.getElementById('players').appendChild(container);
+
+  const inputDiv = document.getElementById(`inputs${playerCount}`);
+  const tables = [document.createElement('table'), document.createElement('table')];
+  const rows = [document.createElement('tr'), document.createElement('tr')];
+
+  for (let i = 1; i <= 18; i++) {
+    const td = document.createElement('td');
+    const val = scores[i - 1] || "";
+    td.innerHTML = `<label>H${i}<br><input type="number" id="hole${playerCount}_${i}" min="1" max="3" value="${val}" onchange="updateScores(${playerCount})"></label>`;
+    rows[i <= 9 ? 0 : 1].appendChild(td);
+  }
+
+  tables[0].appendChild(rows[0]);
+  tables[1].appendChild(rows[1]);
+  inputDiv.appendChild(tables[0]);
+  inputDiv.appendChild(document.createElement('br'));
+  inputDiv.appendChild(tables[1]);
+
+  updateScores(playerCount);
+}
+
+function updateScores(id) {
+  let spik = 0, total = 0;
+  for (let i = 1; i <= 18; i++) {
+    const inp = document.getElementById(`hole${id}_${i}`);
+    let val = parseInt(inp.value);
+    if (val < 1) val = 1;
+    if (val > 3) val = 3;
+    if (!isNaN(val)) {
+      total += val;
+      if (val === 1) spik++;
+    }
+    inp.value = val;
+  }
+  document.getElementById(`spik${id}`).textContent = spik;
+  document.getElementById(`total${id}`).textContent = total;
+  saveToLocal();
+}
+
+function removePlayer(id) {
+  const elem = document.querySelector(`.spelar-rad[data-id='${id}']`);
+  if (elem) elem.remove();
+  saveToLocal();
+}
+
+async function submitResult(id) {
+  const name = document.getElementById(`name${id}`).value.trim();
+  const group = document.getElementById("groupName").value.trim();
+  if (!name || !group) return alert("Spelarnamn och grupp måste fyllas i");
+
+  const scores = [];
+  for (let i = 1; i <= 18; i++) {
+    const val = parseInt(document.getElementById(`hole${id}_${i}`).value);
+    if (![1, 2, 3].includes(val)) {
+      return alert(`Ogiltigt värde på hål ${i}`);
+    }
+    scores.push(val);
+  }
+
+  const spikar = scores.filter(p => p === 1).length;
+  const total = scores.reduce((a, b) => a + b, 0);
+
+  const payload = {
+    spelare: name,
+    grupp: group,
+    poang: scores.join(","),
+    spikar,
+    total
+  };
+
+  const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+  document.getElementById(`status${id}`).textContent = res.ok ? "Resultat inskickat!" : `Fel: ${text}`;
+}
+
+function saveToLocal() {
+  const data = [];
+  document.querySelectorAll('.spelar-rad').forEach(row => {
+    const id = row.getAttribute('data-id');
+    const name = document.getElementById(`name${id}`).value;
+    const scores = [];
+    for (let i = 1; i <= 18; i++) {
+      scores.push(document.getElementById(`hole${id}_${i}`).value);
+    }
+    data.push({ name, scores });
+  });
+  localStorage.setItem("graspoang", JSON.stringify(data));
+}
+
+function loadFromLocal() {
+  localData.forEach(p => addPlayer(p.name, p.scores));
+}
+
+window.addEventListener('load', loadFromLocal);
+
+  </script>
+</body>
 </html>
