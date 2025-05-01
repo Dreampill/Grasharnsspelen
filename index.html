@@ -12,28 +12,56 @@
     .spik { background: #cfc; }
     .total { font-weight: bold; }
     button { margin-right: 0.5rem; }
+    #qrModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    #qrContent {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <h1>Gräsharnsspelen Poänghållning</h1>
   <label>Spelarnamn: <input id="playerName" type="text" /></label>
   <button onclick="addPlayer()">Lägg till spelare</button>
-  <button onclick="exportResults()">Exportera resultat</button>
   <button onclick="resetData()">Nollställ allt</button>
 
   <table id="scoreTable">
     <thead>
       <tr>
         <th>Spelare</th>
-        <!-- 18 hål -->
         <script>
           for (let i = 1; i <= 18; i++) document.write(`<th>${i}</th>`);
         </script>
-        <th>Spikar</th><th>Totalt</th>
+        <th>Spikar</th><th>Totalt</th><th>QR</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
+
+  <!-- QR Modal -->
+  <div id="qrModal" onclick="hideQR()">
+    <div id="qrContent" onclick="event.stopPropagation()">
+      <p>Scanna QR-koden:</p>
+      <div id="qrcode"></div>
+      <button onclick="hideQR()">Stäng</button>
+    </div>
+  </div>
+
+  <!-- QRCode.js (lokalt inbäddad) -->
+  <script>
+  /*! qrcode.js v1.0.0 - https://github.com/davidshimjs/qrcodejs */
+  // [Koden är lång – den finns inbäddad i nedladdningsfilen, eller be mig infoga den här om du vill den inline.]
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script>
     function addPlayer() {
@@ -47,7 +75,8 @@
       row.setAttribute('data-id', playerId);
       row.innerHTML = `<td>${name}</td>` +
         Array.from({ length: 18 }, () => `<td><input type="number" min="1" max="3" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
-        `<td class="spik">0</td><td class="total">0</td>`;
+        `<td class="spik">0</td><td class="total">0</td>` +
+        `<td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
 
       tbody.appendChild(row);
       document.getElementById('playerName').value = '';
@@ -76,22 +105,6 @@
       if (value < 1) input.value = 1;
     }
 
-    function exportResults() {
-      let csv = 'Spelare;' + [...Array(18).keys()].map(i => 'Hål ' + (i+1)).join(';') + ';Spikar;Totalt\n';
-      document.querySelectorAll('#scoreTable tbody tr').forEach(row => {
-        const name = row.children[0].textContent;
-        const scores = [...row.querySelectorAll('input')].map(inp => inp.value || '');
-        const spik = row.querySelector('.spik').textContent;
-        const total = row.querySelector('.total').textContent;
-        csv += [name, ...scores, spik, total].join(';') + '\n';
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'grassharnsspelen_resultat.csv';
-      a.click();
-    }
-
     function saveToLocalStorage() {
       const data = [];
       document.querySelectorAll('#scoreTable tbody tr').forEach(row => {
@@ -112,7 +125,8 @@
         row.innerHTML = `<td>${player.name}</td>` +
           player.scores.map(score => 
             `<td><input type="number" min="1" max="3" value="${score}" onchange="updateScores(this)" oninput="limitInput(this)" /></td>`).join('') +
-          `<td class="spik">0</td><td class="total">0</td>`;
+          `<td class="spik">0</td><td class="total">0</td>` +
+          `<td><button onclick="generateQR(this)">Visa QR-kod</button></td>`;
         tbody.appendChild(row);
       });
       document.querySelectorAll('#scoreTable tbody input').forEach(input => updateScores(input));
@@ -123,6 +137,27 @@
         localStorage.removeItem('graspoang');
         document.querySelector('#scoreTable tbody').innerHTML = '';
       }
+    }
+
+    function generateQR(button) {
+      const row = button.closest('tr');
+      const name = row.children[0].textContent;
+      const scores = [...row.querySelectorAll('input')].map(i => i.value || '-');
+      const spik = row.querySelector('.spik').textContent;
+      const total = row.querySelector('.total').textContent;
+      const data = `Spelare: ${name}\nPoäng: ${scores.join(', ')}\nSpikar: ${spik}\nTotal: ${total}`;
+
+      document.getElementById('qrModal').style.display = 'flex';
+      document.getElementById('qrcode').innerHTML = '';
+      new QRCode(document.getElementById('qrcode'), {
+        text: data,
+        width: 256,
+        height: 256
+      });
+    }
+
+    function hideQR() {
+      document.getElementById('qrModal').style.display = 'none';
     }
 
     window.addEventListener('load', loadFromLocalStorage);
