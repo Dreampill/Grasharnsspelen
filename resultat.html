@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gräsharnsspelen - Resultat</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; max-width: 800px; margin: auto; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #000; padding: 0.5rem; text-align: center; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <h1>Resultat - Gräsharnsspelen</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Placering</th>
+        <th>Spelare</th>
+        <th>Spikar</th>
+        <th>Totalpoäng</th>
+        <th>Poäng (1–18)</th>
+      </tr>
+    </thead>
+    <tbody id="resultTable"></tbody>
+  </table>  <script>
+    async function fetchResults() {
+      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?select=*&order=spikar.desc,total.asc", {
+        headers: {
+          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+        }
+      });
+      const data = await res.json();
+      const table = document.getElementById("resultTable");
+      table.innerHTML = "";
+      data.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${row.spelare}</td>
+          <td>${row.spikar}</td>
+          <td>${row.total}</td>
+          <td>${row.poang}</td>
+        `;
+        table.appendChild(tr);
+      });
+    }
+
+    fetchResults();
+    setInterval(fetchResults, 10000); // uppdatera var 10:e sekund
+  </script></body>
+</html>
