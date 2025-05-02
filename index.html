@@ -9,9 +9,13 @@
     table, th, td { border: 1px solid #000; border-collapse: collapse; }
     th, td { padding: 0.3rem; text-align: center; }
     button { margin: 0.5rem 0.5rem 0 0; }
-    .spelar-rad { margin-bottom: 2rem; border: 2px solid #ccc; padding: 1rem; position: relative; }
-    .poangsummor { margin-top: 0.5rem; font-weight: bold; }
-    .ta-bort-btn { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; padding: 0.3rem 0.5rem; cursor: pointer; }
+    .spelar-rad {
+  margin-bottom: 2rem;
+  border: 2px solid #ccc;
+  padding: 1rem;
+  overflow-x: auto; /* <- denna rad lägger till scroll åt sidan */
+  display: block;   /* <- gör så att overflow fungerar */
+}
   </style>
 </head>
 <body>
