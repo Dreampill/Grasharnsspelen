@@ -30,6 +30,7 @@
   <h1>Gräsharnsspelen - Poänginmatning</h1>
   <label>Gruppnamn: <input id="groupName" type="text"></label><br><br>
   <label>Spelarnamn: <input id="newPlayerName" type="text"></label><br>
+  <button onclick="addPlayer()">Lägg till spelare</button>
   <label>Kön:
     <select id="newPlayerGender">
       <option value="">-</option>
@@ -37,7 +38,6 @@
       <option value="kvinna">Kvinna</option>
     </select>
   </label>
-  <button onclick="addPlayer()">Lägg till spelare</button>
   <div id="players"></div>
   <script>
     const SUPABASE_URL = "https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang";
