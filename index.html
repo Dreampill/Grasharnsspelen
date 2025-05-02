@@ -65,8 +65,8 @@ function addPlayer(name = "", gender = "", scores = []) {
   if (!group) return alert("Skriv in ett gruppnamn först");
   if (!name) {
     name = inputName.value.trim();
-    if (!name) return alert("Skriv in ett namn först");
     gender = inputGender.value;
+    if (!name || !gender) return alert("Spelarnamn och kön måste anges");
   }
   inputName.value = "";
   inputGender.value = "";
@@ -141,7 +141,7 @@ async function submitResult(id) {
   const name = document.getElementById(`name${id}`).value.trim();
   const gender = document.getElementById(`gender${id}`).value;
   const group = document.getElementById("groupName").value.trim();
-  if (!name || !group) return alert("Spelarnamn och grupp måste fyllas i");
+  if (!name || !group || !gender) return alert("Spelarnamn, grupp och kön måste fyllas i");
 
   const scores = [];
   for (let i = 1; i <= 18; i++) {
