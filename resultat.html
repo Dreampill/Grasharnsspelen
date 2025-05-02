@@ -27,11 +27,14 @@
     </thead>
     <tbody id="resultTable"></tbody>
   </table>  <script>
+    const API_URL = "https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang";
+    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro";
+
     async function fetchResults() {
-      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?select=*&order=spikar.desc,total.asc", {
+      const res = await fetch(`${API_URL}?select=*&order=spikar.desc,total.asc`, {
         headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+          apikey: API_KEY,
+          Authorization: `Bearer ${API_KEY}`
         }
       });
       const data = await res.json();
@@ -52,23 +55,22 @@
     }
 
     async function resetDatabase() {
-  if (!confirm("Är du säker på att du vill nollställa databasen?")) return;
-  const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?id=gt.0", {
-  method: "DELETE",
-  headers: {
-    "Content-Type": "application/json",
-    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-    Authorization: "Bearer DINSAMMANYSAMMANAPIKEY"
-  }
-});
-
-  if (res.ok) {
-    alert("Databasen är nollställd.");
-    fetchResults();
-  } else {
-    const err = await res.text();
-    alert("Kunde inte nollställa databasen.\n" + err);
-  }
+      if (!confirm("Är du säker på att du vill nollställa databasen?")) return;
+      const res = await fetch(`${API_URL}?id=gt.0`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: API_KEY,
+          Authorization: `Bearer ${API_KEY}`
+        }
+      });
+      const msg = await res.text();
+      if (res.ok) {
+        alert("Databasen är nollställd.");
+        fetchResults();
+      } else {
+        alert("Kunde inte nollställa databasen.\n" + msg);
+      }
     }
 
     fetchResults();
