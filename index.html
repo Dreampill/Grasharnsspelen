@@ -19,6 +19,11 @@
     }
     .poangsummor { margin-top: 0.5rem; font-weight: bold; }
     .ta-bort-btn { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; padding: 0.3rem 0.5rem; cursor: pointer; }
+    .checkmark {
+      color: green;
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -35,7 +40,10 @@
   <button onclick="addPlayer()">Lägg till spelare</button>
   <div id="players"></div>
   <script>
-    let playerCount = 0;function saveToLocal() {
+    const SUPABASE_URL = "https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang";
+    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro";let playerCount = 0;
+
+function saveToLocal() {
   const groupName = document.getElementById("groupName").value;
   const players = [];
   document.querySelectorAll('.spelar-rad').forEach(row => {
@@ -46,7 +54,8 @@
     for (let i = 1; i <= 18; i++) {
       scores.push(document.getElementById(`hole${id}_${i}`).value);
     }
-    players.push({ name, gender, scores });
+    const submitted = document.getElementById(`check${id}`).textContent === "✓";
+    players.push({ name, gender, scores, submitted });
   });
   localStorage.setItem("graspoang", JSON.stringify({ groupName, players }));
 }
@@ -55,10 +64,10 @@ function loadFromLocal() {
   const saved = JSON.parse(localStorage.getItem("graspoang"));
   if (!saved) return;
   document.getElementById("groupName").value = saved.groupName || "";
-  saved.players.forEach(p => addPlayer(p.name, p.gender, p.scores));
+  saved.players.forEach(p => addPlayer(p.name, p.gender, p.scores, p.submitted));
 }
 
-function addPlayer(name = "", gender = "", scores = []) {
+function addPlayer(name = "", gender = "", scores = [], submitted = false) {
   const inputName = document.getElementById("newPlayerName");
   const inputGender = document.getElementById("newPlayerGender");
   const group = document.getElementById("groupName").value.trim();
@@ -78,7 +87,7 @@ function addPlayer(name = "", gender = "", scores = []) {
 
   container.innerHTML = `
     <button class="ta-bort-btn" onclick="removePlayer(${playerCount})">X</button>
-    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" onchange="saveToLocal()"></label>
+    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" onchange="saveToLocal()"> <span id="check${playerCount}" class="checkmark">${submitted ? '✓' : ''}</span></label>
     <label>Kön:
       <select id="gender${playerCount}" onchange="saveToLocal()">
         <option value="">-</option>
@@ -164,18 +173,49 @@ async function submitResult(id) {
     total
   };
 
-  const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang", {
-    method: "POST",
+  const check = await fetch(`${SUPABASE_URL}?spelare=eq.${encodeURIComponent(name)}&grupp=eq.${encodeURIComponent(group)}`, {
     headers: {
-      "Content-Type": "application/json",
-      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
-    },
-    body: JSON.stringify(payload)
+      apikey: API_KEY,
+      Authorization: `Bearer ${API_KEY}`
+    }
   });
+  const existing = await check.json();
 
-  const text = await res.text();
-  document.getElementById(`status${id}`).textContent = res.ok ? "Resultat inskickat!" : `Fel: ${text}`;
+  const checkmark = document.getElementById(`check${id}`);
+
+  if (existing.length > 0) {
+    const overwrite = confirm("Resultat är redan inskickat för denna spelare. Vill du uppdatera det?");
+    if (!overwrite) return;
+
+    const rowId = existing[0].id;
+    const res = await fetch(`${SUPABASE_URL}?id=eq.${rowId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: API_KEY,
+        Authorization: `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    document.getElementById(`status${id}`).textContent = res.ok ? "Resultat uppdaterat!" : `Fel: ${text}`;
+    if (res.ok) checkmark.textContent = "✓";
+
+  } else {
+    const res = await fetch(SUPABASE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: API_KEY,
+        Authorization: `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    document.getElementById(`status${id}`).textContent = res.ok ? "Resultat inskickat!" : `Fel: ${text}`;
+    if (res.ok) checkmark.textContent = "✓";
+  }
+  saveToLocal();
 }
 
 window.addEventListener('load', loadFromLocal);
