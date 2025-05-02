@@ -10,31 +10,66 @@
     th, td { padding: 0.3rem; text-align: center; }
     button { margin: 0.5rem 0.5rem 0 0; }
     .spelar-rad {
-  margin-bottom: 2rem;
-  border: 2px solid #ccc;
-  padding: 1rem;
-  overflow-x: auto; /* <- denna rad lägger till scroll åt sidan */
-  display: block;   /* <- gör så att overflow fungerar */
-}
+      margin-bottom: 2rem;
+      border: 2px solid #ccc;
+      padding: 1rem;
+      width: fit-content;
+      max-width: 100%;
+      position: relative;
+    }
+    .poangsummor { margin-top: 0.5rem; font-weight: bold; }
+    .ta-bort-btn { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; padding: 0.3rem 0.5rem; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>Gräsharnsspelen - Poänginmatning</h1>
   <label>Gruppnamn: <input id="groupName" type="text"></label><br><br>
   <label>Spelarnamn: <input id="newPlayerName" type="text"></label>
+  <label>Kön:
+    <select id="newPlayerGender">
+      <option value="">-</option>
+      <option value="man">Man</option>
+      <option value="kvinna">Kvinna</option>
+    </select>
+  </label>
   <button onclick="addPlayer()">Lägg till spelare</button>
   <div id="players"></div>
   <script>
-    let playerCount = 0;
-    let localData = JSON.parse(localStorage.getItem("graspoang") || "[]");function addPlayer(name = "", scores = []) {
+    let playerCount = 0;function saveToLocal() {
+  const groupName = document.getElementById("groupName").value;
+  const players = [];
+  document.querySelectorAll('.spelar-rad').forEach(row => {
+    const id = row.getAttribute('data-id');
+    const name = document.getElementById(`name${id}`).value;
+    const gender = document.getElementById(`gender${id}`).value;
+    const scores = [];
+    for (let i = 1; i <= 18; i++) {
+      scores.push(document.getElementById(`hole${id}_${i}`).value);
+    }
+    players.push({ name, gender, scores });
+  });
+  localStorage.setItem("graspoang", JSON.stringify({ groupName, players }));
+}
+
+function loadFromLocal() {
+  const saved = JSON.parse(localStorage.getItem("graspoang"));
+  if (!saved) return;
+  document.getElementById("groupName").value = saved.groupName || "";
+  saved.players.forEach(p => addPlayer(p.name, p.gender, p.scores));
+}
+
+function addPlayer(name = "", gender = "", scores = []) {
   const inputName = document.getElementById("newPlayerName");
+  const inputGender = document.getElementById("newPlayerGender");
   const group = document.getElementById("groupName").value.trim();
   if (!group) return alert("Skriv in ett gruppnamn först");
   if (!name) {
     name = inputName.value.trim();
     if (!name) return alert("Skriv in ett namn först");
+    gender = inputGender.value;
   }
   inputName.value = "";
+  inputGender.value = "";
 
   playerCount++;
   const container = document.createElement('div');
@@ -43,7 +78,14 @@
 
   container.innerHTML = `
     <button class="ta-bort-btn" onclick="removePlayer(${playerCount})">X</button>
-    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" required></label>
+    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" onchange="saveToLocal()"></label>
+    <label>Kön:
+      <select id="gender${playerCount}" onchange="saveToLocal()">
+        <option value="">-</option>
+        <option value="man" ${gender === "man" ? "selected" : ""}>Man</option>
+        <option value="kvinna" ${gender === "kvinna" ? "selected" : ""}>Kvinna</option>
+      </select>
+    </label>
     <div id="inputs${playerCount}"></div>
     <div class="poangsummor">Spikar: <span id="spik${playerCount}">0</span> | Totalt: <span id="total${playerCount}">0</span></div>
     <button onclick="submitResult(${playerCount})">Skicka resultat</button>
@@ -97,6 +139,7 @@ function removePlayer(id) {
 
 async function submitResult(id) {
   const name = document.getElementById(`name${id}`).value.trim();
+  const gender = document.getElementById(`gender${id}`).value;
   const group = document.getElementById("groupName").value.trim();
   if (!name || !group) return alert("Spelarnamn och grupp måste fyllas i");
 
@@ -115,6 +158,7 @@ async function submitResult(id) {
   const payload = {
     spelare: name,
     grupp: group,
+    kon: gender,
     poang: scores.join(","),
     spikar,
     total
@@ -124,32 +168,14 @@ async function submitResult(id) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
     },
     body: JSON.stringify(payload)
   });
 
   const text = await res.text();
   document.getElementById(`status${id}`).textContent = res.ok ? "Resultat inskickat!" : `Fel: ${text}`;
-}
-
-function saveToLocal() {
-  const data = [];
-  document.querySelectorAll('.spelar-rad').forEach(row => {
-    const id = row.getAttribute('data-id');
-    const name = document.getElementById(`name${id}`).value;
-    const scores = [];
-    for (let i = 1; i <= 18; i++) {
-      scores.push(document.getElementById(`hole${id}_${i}`).value);
-    }
-    data.push({ name, scores });
-  });
-  localStorage.setItem("graspoang", JSON.stringify(data));
-}
-
-function loadFromLocal() {
-  localData.forEach(p => addPlayer(p.name, p.scores));
 }
 
 window.addEventListener('load', loadFromLocal);
