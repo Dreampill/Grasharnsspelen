@@ -52,21 +52,23 @@
     }
 
     async function resetDatabase() {
-      if (!confirm("Är du säker på att du vill nollställa databasen?")) return;
-      const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
-        }
-      });
-      if (res.ok) {
-        alert("Databasen är nollställd.");
-        fetchResults();
-      } else {
-        alert("Kunde inte nollställa databasen.");
-      }
+  if (!confirm("Är du säker på att du vill nollställa databasen?")) return;
+  const res = await fetch("https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang?true", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro",
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro"
+    }
+  });
+
+  if (res.ok) {
+    alert("Databasen är nollställd.");
+    fetchResults();
+  } else {
+    const err = await res.text();
+    alert("Kunde inte nollställa databasen.\n" + err);
+  }
     }
 
     fetchResults();
