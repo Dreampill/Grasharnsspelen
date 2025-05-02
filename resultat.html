@@ -19,7 +19,7 @@
     const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro";
 
     async function fetchResults() {
-      const res = await fetch(`${API_URL}?select=*&order=spikar.desc,total.asc`, {
+      const res = await fetch(`${API_URL}?select=*&order=created_at.desc`, {
         headers: {
           apikey: API_KEY,
           Authorization: `Bearer ${API_KEY}`
@@ -27,11 +27,9 @@
       });
       const data = await res.json();
 
-      // Rensa tidigare innehåll
       const container = document.getElementById("resultContainer");
       container.innerHTML = "";
 
-      // Gruppera efter kön och ta bort dubletter
       const unique = {};
       const filtered = data.filter(row => {
         const key = row.spelare + "__" + row.grupp;
@@ -46,6 +44,8 @@
       };
 
       for (const [kon, lista] of Object.entries(grouped)) {
+        lista.sort((a, b) => b.spikar - a.spikar || a.total - b.total);
+
         const title = document.createElement("h2");
         title.textContent = kon === "man" ? "Herrtävling" : "Damttävling";
         container.appendChild(title);
@@ -61,20 +61,26 @@
               <th>Spikar</th>
               <th>Totalpoäng</th>
               <th>Poäng (1–18)</th>
+              <th>Datum</th>
             </tr>
           </thead>
           <tbody>
-            ${lista.map((row, index) => `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${row.grupp || ""}</td>
-                <td>${row.spelare}</td>
-                <td>${row.kon || ""}</td>
-                <td>${row.spikar}</td>
-                <td>${row.total}</td>
-                <td>${row.poang}</td>
-              </tr>
-            `).join("")}
+            ${lista.map((row, index) => {
+              const date = new Date(row.created_at);
+              const formatted = date.toLocaleString('sv-SE');
+              return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.grupp || ""}</td>
+                  <td>${row.spelare}</td>
+                  <td>${row.kon || ""}</td>
+                  <td>${row.spikar}</td>
+                  <td>${row.total}</td>
+                  <td>${row.poang}</td>
+                  <td>${formatted}</td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         `;
         container.appendChild(table);
@@ -82,7 +88,7 @@
     }
 
     async function resetDatabase() {
-      if (!confirm("Är du säker på att du vill nollställa databasen?")) return;
+      if (!confirm("\u00c4r du s\u00e4ker p\u00e5 att du vill nollst\u00e4lla databasen?")) return;
       const res = await fetch(`${API_URL}?id=gt.0`, {
         method: "DELETE",
         headers: {
@@ -93,10 +99,10 @@
       });
       const msg = await res.text();
       if (res.ok) {
-        alert("Databasen är nollställd.");
+        alert("Databasen \u00e4r nollst\u00e4lld.");
         fetchResults();
       } else {
-        alert("Kunde inte nollställa databasen.\n" + msg);
+        alert("Kunde inte nollst\u00e4lla databasen.\n" + msg);
       }
     }
 
