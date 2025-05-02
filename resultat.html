@@ -14,19 +14,7 @@
 <body>
   <h1>Resultat - Gräsharnsspelen</h1>
   <button id="resetButton" onclick="resetDatabase()">Nollställ databasen</button>
-  <table>
-    <thead>
-      <tr>
-        <th>Placering</th>
-        <th>Grupp</th>
-        <th>Spelare</th>
-        <th>Spikar</th>
-        <th>Totalpoäng</th>
-        <th>Poäng (1–18)</th>
-      </tr>
-    </thead>
-    <tbody id="resultTable"></tbody>
-  </table>  <script>
+  <div id="resultContainer"></div>  <script>
     const API_URL = "https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang";
     const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro";
 
@@ -38,20 +26,59 @@
         }
       });
       const data = await res.json();
-      const table = document.getElementById("resultTable");
-      table.innerHTML = "";
-      data.forEach((row, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${row.grupp || ""}</td>
-          <td>${row.spelare}</td>
-          <td>${row.spikar}</td>
-          <td>${row.total}</td>
-          <td>${row.poang}</td>
-        `;
-        table.appendChild(tr);
+
+      // Rensa tidigare innehåll
+      const container = document.getElementById("resultContainer");
+      container.innerHTML = "";
+
+      // Gruppera efter kön och ta bort dubletter
+      const unique = {};
+      const filtered = data.filter(row => {
+        const key = row.spelare + "__" + row.grupp;
+        if (unique[key]) return false;
+        unique[key] = true;
+        return true;
       });
+
+      const grouped = {
+        man: filtered.filter(p => p.kon === "man"),
+        kvinna: filtered.filter(p => p.kon === "kvinna")
+      };
+
+      for (const [kon, lista] of Object.entries(grouped)) {
+        const title = document.createElement("h2");
+        title.textContent = kon === "man" ? "Herrtävling" : "Damttävling";
+        container.appendChild(title);
+
+        const table = document.createElement("table");
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Placering</th>
+              <th>Grupp</th>
+              <th>Spelare</th>
+              <th>Kön</th>
+              <th>Spikar</th>
+              <th>Totalpoäng</th>
+              <th>Poäng (1–18)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lista.map((row, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${row.grupp || ""}</td>
+                <td>${row.spelare}</td>
+                <td>${row.kon || ""}</td>
+                <td>${row.spikar}</td>
+                <td>${row.total}</td>
+                <td>${row.poang}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        `;
+        container.appendChild(table);
+      }
     }
 
     async function resetDatabase() {
