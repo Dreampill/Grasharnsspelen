@@ -2,225 +2,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gräsharnsspelen - Poänginmatning</title>
+  <title>LifeQuest</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 1000px; margin: auto; }
-    input[type="number"] { width: 3rem; }
-    table, th, td { border: 1px solid #000; border-collapse: collapse; }
-    th, td { padding: 0.3rem; text-align: center; }
-    button { margin: 0.5rem 0.5rem 0 0; }
-    .spelar-rad {
-      margin-bottom: 2rem;
-      border: 2px solid #ccc;
-      padding: 1rem;
-      width: max-content;
-      max-width: max-content;
-      position: relative;
+    body {
+      font-family: sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
     }
-    .poangsummor { margin-top: 0.5rem; font-weight: bold; }
-    .ta-bort-btn { position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; padding: 0.3rem 0.5rem; cursor: pointer; }
-    .checkmark {
-      color: green;
-      font-weight: bold;
-      margin-left: 0.5rem;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    input, select, button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      background: #e2e2e2;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .quest-done {
+      background-color: #c8e6c9;
     }
   </style>
 </head>
 <body>
-  <h1>Gräsharnsspelen - Poänginmatning</h1>
-  <label>Gruppnamn: <input id="groupName" type="text"></label><br><br>
-  <label>Spelarnamn: <input id="newPlayerName" type="text"></label><br>
-  <button onclick="addPlayer()">Lägg till spelare</button>
-  <label>Kön:
-    <select id="newPlayerGender">
-      <option value="">-</option>
-      <option value="man">Man</option>
-      <option value="kvinna">Kvinna</option>
-      <option value="icke-binär">Icke-binär</option>
-    </select>
-  </label>
-  <div id="players"></div>
-  <script>
-    const SUPABASE_URL = "https://xkvdvovunzukhwohozzh.supabase.co/rest/v1/poang";
-    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrdmR2b3Z1bnp1a2h3b2hvenpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMjA4MDcsImV4cCI6MjA2MTY5NjgwN30.M2V-TQUyYk09_bHfXbBdvXipRDw08GHz0JENnNCk6Ro";let playerCount = 0;
+  <div class="container">
+    <h1>LifeQuest</h1><!-- Karaktärsskapande -->
+<section>
+  <h2>Skapa din karaktär</h2>
+  <input type="text" id="characterName" placeholder="Namn">
+  <button onclick="createCharacter()">Skapa</button>
+</section>
 
-function saveToLocal() {
-  const groupName = document.getElementById("groupName").value;
-  const players = [];
-  document.querySelectorAll('.spelar-rad').forEach(row => {
-    const id = row.getAttribute('data-id');
-    const name = document.getElementById(`name${id}`).value;
-    const gender = document.getElementById(`gender${id}`).value;
-    const scores = [];
-    for (let i = 1; i <= 18; i++) {
-      scores.push(document.getElementById(`hole${id}_${i}`).value);
+<!-- Statsvisning -->
+<section>
+  <h2>Statistik</h2>
+  <div id="stats"></div>
+</section>
+
+<!-- Questskapande -->
+<section>
+  <h2>Skapa uppdrag</h2>
+  <input type="text" id="questTitle" placeholder="Titel">
+  <select id="questStat">
+    <option value="STR">Styrka</option>
+    <option value="WIS">Visdom</option>
+    <option value="INT">Intelligens</option>
+    <option value="CHA">Karisma</option>
+    <option value="CON">Konstitution</option>
+  </select>
+  <input type="number" id="questXP" placeholder="XP" min="1">
+  <button onclick="addQuest()">Lägg till uppdrag</button>
+  <ul id="questList"></ul>
+</section>
+
+  </div>  <script>
+    let character = null;
+    let stats = {
+      STR: 0,
+      WIS: 0,
+      INT: 0,
+      CHA: 0,
+      CON: 0
+    };
+    let quests = [];
+
+    function createCharacter() {
+      const name = document.getElementById("characterName").value;
+      if (!name) return alert("Ange ett namn!");
+      character = name;
+      alert(`Karaktären ${name} är skapad!`);
+      updateStats();
     }
-    const submitted = document.getElementById(`check${id}`).textContent === "✓";
-    players.push({ name, gender, scores, submitted });
-  });
-  localStorage.setItem("graspoang", JSON.stringify({ groupName, players }));
-}
 
-function loadFromLocal() {
-  const saved = JSON.parse(localStorage.getItem("graspoang"));
-  if (!saved) return;
-  document.getElementById("groupName").value = saved.groupName || "";
-  saved.players.forEach(p => addPlayer(p.name, p.gender, p.scores, p.submitted));
-}
-
-function addPlayer(name = "", gender = "", scores = [], submitted = false) {
-  const inputName = document.getElementById("newPlayerName");
-  const inputGender = document.getElementById("newPlayerGender");
-  const group = document.getElementById("groupName").value.trim();
-  if (!group) return alert("Skriv in ett gruppnamn först");
-  if (!name) {
-    name = inputName.value.trim();
-    gender = inputGender.value;
-    if (!name || !gender) return alert("Spelarnamn och kön måste anges");
-  }
-  inputName.value = "";
-  inputGender.value = "";
-
-  playerCount++;
-  const container = document.createElement('div');
-  container.className = 'spelar-rad';
-  container.setAttribute('data-id', playerCount);
-
-  container.innerHTML = `
-    <button class="ta-bort-btn" onclick="removePlayer(${playerCount})">X</button>
-    <label>Spelarnamn: <input type="text" id="name${playerCount}" value="${name}" onchange="saveToLocal()"> <span id="check${playerCount}" class="checkmark">${submitted ? '✓' : ''}</span></label>
-    <label>Kön:
-      <select id="gender${playerCount}" onchange="saveToLocal()">
-        <option value="">-</option>
-        <option value="man" ${gender === "man" ? "selected" : ""}>Man</option>
-        <option value="kvinna" ${gender === "kvinna" ? "selected" : ""}>Kvinna</option>
-      </select>
-    </label>
-    <div id="inputs${playerCount}"></div>
-    <div class="poangsummor">Spikar: <span id="spik${playerCount}">0</span> | Totalt: <span id="total${playerCount}">0</span></div>
-    <button onclick="submitResult(${playerCount})">Skicka resultat</button>
-    <p id="status${playerCount}"></p>
-  `;
-  document.getElementById('players').appendChild(container);
-
-  const inputDiv = document.getElementById(`inputs${playerCount}`);
-  const tables = [document.createElement('table'), document.createElement('table')];
-  const rows = [document.createElement('tr'), document.createElement('tr')];
-
-  for (let i = 1; i <= 18; i++) {
-    const td = document.createElement('td');
-    const val = scores[i - 1] || "";
-    td.innerHTML = `<label>H${i}<br><input type="number" id="hole${playerCount}_${i}" min="1" max="3" value="${val}" onchange="updateScores(${playerCount})"></label>`;
-    rows[i <= 9 ? 0 : 1].appendChild(td);
-  }
-
-  tables[0].appendChild(rows[0]);
-  tables[1].appendChild(rows[1]);
-  inputDiv.appendChild(tables[0]);
-  inputDiv.appendChild(document.createElement('br'));
-  inputDiv.appendChild(tables[1]);
-
-  updateScores(playerCount);
-}
-
-function updateScores(id) {
-  let spik = 0, total = 0;
-  for (let i = 1; i <= 18; i++) {
-    const inp = document.getElementById(`hole${id}_${i}`);
-    let val = parseInt(inp.value);
-    if (val < 1) val = 1;
-    if (val > 3) val = 3;
-    if (!isNaN(val)) {
-      total += val;
-      if (val === 1) spik++;
+    function updateStats() {
+      const statsDiv = document.getElementById("stats");
+      if (!character) {
+        statsDiv.innerHTML = "<p>Skapa en karaktär först.</p>";
+        return;
+      }
+      let html = `<h3>${character}</h3>`;
+      for (let key in stats) {
+        html += `<p>${key}: ${stats[key]} XP</p>`;
+      }
+      statsDiv.innerHTML = html;
     }
-    inp.value = val;
-  }
-  document.getElementById(`spik${id}`).textContent = spik;
-  document.getElementById(`total${id}`).textContent = total;
-  saveToLocal();
-}
 
-function removePlayer(id) {
-  const elem = document.querySelector(`.spelar-rad[data-id='${id}']`);
-  if (elem) elem.remove();
-  saveToLocal();
-}
-
-async function submitResult(id) {
-  const name = document.getElementById(`name${id}`).value.trim();
-  const gender = document.getElementById(`gender${id}`).value;
-  const group = document.getElementById("groupName").value.trim();
-  if (!name || !group || !gender) return alert("Spelarnamn, grupp och kön måste fyllas i");
-
-  const scores = [];
-  for (let i = 1; i <= 18; i++) {
-    const val = parseInt(document.getElementById(`hole${id}_${i}`).value);
-    if (![1, 2, 3].includes(val)) {
-      return alert(`Ogiltigt värde på hål ${i}`);
+    function addQuest() {
+      const title = document.getElementById("questTitle").value;
+      const stat = document.getElementById("questStat").value;
+      const xp = parseInt(document.getElementById("questXP").value);
+      if (!title || !stat || !xp) return alert("Fyll i alla fält.");
+      const quest = { title, stat, xp, completed: false };
+      quests.push(quest);
+      renderQuests();
     }
-    scores.push(val);
-  }
 
-  const spikar = scores.filter(p => p === 1).length;
-  const total = scores.reduce((a, b) => a + b, 0);
-
-  const payload = {
-    spelare: name,
-    grupp: group,
-    kon: gender,
-    poang: scores.join(","),
-    spikar,
-    total
-  };
-
-  const check = await fetch(`${SUPABASE_URL}?spelare=eq.${encodeURIComponent(name)}&grupp=eq.${encodeURIComponent(group)}`, {
-    headers: {
-      apikey: API_KEY,
-      Authorization: `Bearer ${API_KEY}`
+    function renderQuests() {
+      const list = document.getElementById("questList");
+      list.innerHTML = "";
+      quests.forEach((q, index) => {
+        const li = document.createElement("li");
+        li.className = q.completed ? "quest-done" : "";
+        li.innerHTML = `
+          <strong>${q.title}</strong><br>
+          Kategori: ${q.stat}, XP: ${q.xp}<br>
+          <button onclick="completeQuest(${index})" ${q.completed ? "disabled" : ""}>Slutför</button>
+        `;
+        list.appendChild(li);
+      });
     }
-  });
-  const existing = await check.json();
 
-  const checkmark = document.getElementById(`check${id}`);
-
-  if (existing.length > 0) {
-    const overwrite = confirm("Resultat är redan inskickat för denna spelare. Vill du uppdatera det?");
-    if (!overwrite) return;
-
-    const rowId = existing[0].id;
-    const res = await fetch(`${SUPABASE_URL}?id=eq.${rowId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: API_KEY,
-        Authorization: `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify(payload)
-    });
-    const text = await res.text();
-    document.getElementById(`status${id}`).textContent = res.ok ? "Resultat uppdaterat!" : `Fel: ${text}`;
-    if (res.ok) checkmark.textContent = "✓";
-
-  } else {
-    const res = await fetch(SUPABASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: API_KEY,
-        Authorization: `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify(payload)
-    });
-    const text = await res.text();
-    document.getElementById(`status${id}`).textContent = res.ok ? "Resultat inskickat!" : `Fel: ${text}`;
-    if (res.ok) checkmark.textContent = "✓";
-  }
-  saveToLocal();
-}
-
-window.addEventListener('load', loadFromLocal);
-
-  </script>
-</body>
+    function completeQuest(index) {
+      if (quests[index].completed) return;
+      const q = quests[index];
+      stats[q.stat] += q.xp;
+      quests[index].completed = true;
+      updateStats();
+      renderQuests();
+    }
+  </script></body>
 </html>
