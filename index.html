@@ -2,142 +2,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LifeQuest</title>
+  <title>LifeQuest – Dungeon Master AI</title>
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
+      font-family: 'Georgia', serif;
+      background-color: #f2efe8;
+      color: #2c2c2c;
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 500px;
       margin: auto;
-      background: white;
+      background: #fff;
       padding: 20px;
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1, h2 {
+    h1 {
       text-align: center;
+      margin-bottom: 10px;
     }
-    input, select, button {
-      display: block;
-      width: 100%;
-      padding: 10px;
+    #dmBox {
+      background: #eee;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .option {
       margin: 10px 0;
+      padding: 10px;
+      background: #dcd5c6;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
       font-size: 16px;
     }
-    ul {
-      list-style-type: none;
-      padding: 0;
+    .option:hover {
+      background: #c4baa6;
     }
-    li {
-      background: #e2e2e2;
+    .controls {
+      margin-top: 20px;
+    }
+    button {
       padding: 10px;
+      width: 100%;
+      font-size: 16px;
       margin-bottom: 10px;
+      border: none;
       border-radius: 5px;
+      background-color: #6d5f50;
+      color: white;
+      cursor: pointer;
     }
-    .quest-done {
-      background-color: #c8e6c9;
+    button:hover {
+      background-color: #4f453a;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>LifeQuest</h1><!-- Karaktärsskapande -->
-<section>
-  <h2>Skapa din karaktär</h2>
-  <input type="text" id="characterName" placeholder="Namn">
-  <button onclick="createCharacter()">Skapa</button>
-</section>
+    <h1>🧙 LifeQuest</h1>
+    <div id="dmBox">
+      <p><strong>Dungeon Master säger:</strong></p>
+      <p id="dmText">"God morgon, äventyrare. Din dag väntar..."</p>
+    </div><div id="options"></div>
 
-<!-- Statsvisning -->
-<section>
-  <h2>Statistik</h2>
-  <div id="stats"></div>
-</section>
-
-<!-- Questskapande -->
-<section>
-  <h2>Skapa uppdrag</h2>
-  <input type="text" id="questTitle" placeholder="Titel">
-  <select id="questStat">
-    <option value="STR">Styrka</option>
-    <option value="WIS">Visdom</option>
-    <option value="INT">Intelligens</option>
-    <option value="CHA">Karisma</option>
-    <option value="CON">Konstitution</option>
-  </select>
-  <input type="number" id="questXP" placeholder="XP" min="1">
-  <button onclick="addQuest()">Lägg till uppdrag</button>
-  <ul id="questList"></ul>
-</section>
+<div class="controls">
+  <input type="text" id="aiPrompt" placeholder="Vad vill du fokusera på idag?" />
+  <button onclick="generateAIQuest()">🔮 Få AI-genererat uppdrag</button>
+  <button onclick="completeQuest()">✅ Jag har slutfört uppdraget</button>
+</div>
 
   </div>  <script>
-    let character = null;
-    let stats = {
-      STR: 0,
-      WIS: 0,
-      INT: 0,
-      CHA: 0,
-      CON: 0
-    };
-    let quests = [];
+    let currentQuest = null;
 
-    function createCharacter() {
-      const name = document.getElementById("characterName").value;
-      if (!name) return alert("Ange ett namn!");
-      character = name;
-      alert(`Karaktären ${name} är skapad!`);
-      updateStats();
+    async function generateAIQuest() {
+      const promptInput = document.getElementById("aiPrompt").value.trim();
+      if (!promptInput) return alert("Skriv vad du vill fokusera på.");
+
+      const dmText = document.getElementById("dmText");
+      const options = document.getElementById("options");
+      dmText.innerText = "\"Hmm... Låt mig tänka...\"";
+      options.innerHTML = "";
+
+      const systemPrompt = "Du är en fantasy-inspirerad Dungeon Master som ger användaren ett kort, verkligt uppdrag för att förbättra sitt liv. Svara ENDAST i JSON-format med fälten: title, stat (STR, WIS, INT, CHA, CON, SKILL), xp (5-25).";
+      const userPrompt = `Skapa ett uppdrag baserat på: ${promptInput}`;
+
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer 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"
+          },
+          body: JSON.stringify({
+            model: "gpt-4",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.8
+          })
+        });
+
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
+        const quest = JSON.parse(reply);
+
+        currentQuest = quest;
+        dmText.innerText = `\"${quest.title} – (${quest.stat}, +${quest.xp} XP). Gör dig redo att agera.\"`;
+      } catch (e) {
+        dmText.innerText = "\"Något gick fel när jag försökte tolka ödet... Försök igen.\"";
+        console.error(e);
+      }
     }
 
-    function updateStats() {
-      const statsDiv = document.getElementById("stats");
-      if (!character) {
-        statsDiv.innerHTML = "<p>Skapa en karaktär först.</p>";
+    function completeQuest() {
+      const dmText = document.getElementById("dmText");
+      if (!currentQuest) {
+        alert("Inget uppdrag har valts ännu!");
         return;
       }
-      let html = `<h3>${character}</h3>`;
-      for (let key in stats) {
-        html += `<p>${key}: ${stats[key]} XP</p>`;
-      }
-      statsDiv.innerHTML = html;
-    }
-
-    function addQuest() {
-      const title = document.getElementById("questTitle").value;
-      const stat = document.getElementById("questStat").value;
-      const xp = parseInt(document.getElementById("questXP").value);
-      if (!title || !stat || !xp) return alert("Fyll i alla fält.");
-      const quest = { title, stat, xp, completed: false };
-      quests.push(quest);
-      renderQuests();
-    }
-
-    function renderQuests() {
-      const list = document.getElementById("questList");
-      list.innerHTML = "";
-      quests.forEach((q, index) => {
-        const li = document.createElement("li");
-        li.className = q.completed ? "quest-done" : "";
-        li.innerHTML = `
-          <strong>${q.title}</strong><br>
-          Kategori: ${q.stat}, XP: ${q.xp}<br>
-          <button onclick="completeQuest(${index})" ${q.completed ? "disabled" : ""}>Slutför</button>
-        `;
-        list.appendChild(li);
-      });
-    }
-
-    function completeQuest(index) {
-      if (quests[index].completed) return;
-      const q = quests[index];
-      stats[q.stat] += q.xp;
-      quests[index].completed = true;
-      updateStats();
-      renderQuests();
+      dmText.innerText = `\"Du har slutfört: '${currentQuest.title}'. Din ${currentQuest.stat}-kraft ökar med ${currentQuest.xp} XP.\"`;
+      currentQuest = null;
     }
   </script></body>
 </html>
